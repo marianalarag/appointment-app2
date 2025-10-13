@@ -61,11 +61,12 @@
                             </button>
                             <ul id="dropdown-example" class="hidden py-2 space-y-2">
                                 @foreach($link['submenu'] as $item)
-                                <li>
-                                    <a href="{{$link['href']}}"
-                                       class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">
-                                        {{$link['name']}}</a>
-                                </li>
+                                    <li>
+                                        <a href="{{$item['href']}}"
+                                           class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">
+                                            {{$item['name']}}
+                                        </a>
+                                    </li>
                                 @endforeach
                             </ul>
                         @else
