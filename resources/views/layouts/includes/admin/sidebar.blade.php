@@ -8,36 +8,19 @@
             'active' => request()->routeIs('admin.dashboard'),
         ],
         [
-            'header' => 'Hospital',
+            'header' => 'Gestión',
         ],
         [
-            'name' => 'Dashboard',
-            'icon' => 'fa-solid fa-gauge',
-            'href' => route('admin.dashboard'),
-            'active' => false,
-            'submenu' => [
-                [
-                    'name' => 'Products',
-                    'href' => '#',
-                    'active' => false,
-                ],
-                [
-                    'name' => 'Billing',
-                    'href' => '#',
-                    'active' => false,
-                ],
-                [
-                    'name' => 'Invoice',
-                    'href' => '#',
-                    'active' => false,
-                ],
-            ],
+            'name' => 'Roles y permisos',
+            'icon' => 'fa-solid fa-shield-halved',
+            'href' => route('admin.roles.index'),
+            'active' => request()->routeIs('admin.roles.*'),
         ],
     ];
 @endphp
 
-<aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700" aria-label="Sidebar">
-    <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
+<aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0" aria-label="Sidebar">
+    <div class="h-full px-3 pb-4 overflow-y-auto bg-white">
         <ul class="space-y-2 font-medium">
             @foreach($links as $link)
                 <li>
@@ -50,7 +33,7 @@
                     @else
                         {{-- Revisa si existe un submenú --}}
                         @isset($link['submenu'])
-                            <button type="button" class="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700" aria-controls="dropdown-example" data-collapse-toggle="dropdown-example">
+                            <button type="button" class="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100" aria-controls="dropdown-example" data-collapse-toggle="dropdown-example">
                                 <span class = "w-6 h-6 inline-flex justify-center items-center text-gray-500">
                                     <i class="{{$link['icon']}}"></i>
                                 </span>
@@ -63,14 +46,14 @@
                                 @foreach($link['submenu'] as $item)
                                     <li>
                                         <a href="{{$item['href']}}"
-                                           class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">
+                                           class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100">
                                             {{$item['name']}}
                                         </a>
                                     </li>
                                 @endforeach
                             </ul>
                         @else
-                            <a href="{{$link['href']}}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ $link['active'] ? 'border-gray-100' : '' }}">
+                            <a href="{{$link['href']}}" class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group {{ $link['active'] ? 'border-gray-100' : '' }}">
                     <span class = "w-6 h-6 inline-flex justify-center items-center text-gray-500">
                         <i class="{{$link['icon']}}"></i>
                     </span>
