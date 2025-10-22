@@ -1,4 +1,4 @@
-<x-admin-layout title="Roles | Farmacon" :breadcrumb="[
+<x-admin-layout title="Roles | Simify" :breadcrumb="[
     [
         'name' => 'Dashboard',
         'url' => route('admin.dashboard')
@@ -8,7 +8,10 @@
         'url' => route('admin.roles.index')
     ],
     [
-        'name' => 'Crear',
+        'name' => 'Nuevo',
+    ],
+        [
+        'name' => 'Editar',
     ],
 ]">
 </x-admin-layout>
