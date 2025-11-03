@@ -1,7 +1,8 @@
 @props ([
     'title' => config('app.name', 'Laravel'),
     'breadcrumbs' => []])
-<!DOCTYPE html>
+
+    <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -24,21 +25,29 @@
     <!-- Styles -->
     @livewireStyles
 </head>
+
 <body class="font-sans antialiased bg-gray-50">
-    @include('layouts.includes.admin.navigation')
-    @include('layouts.includes.admin.sidebar')
+@include('layouts.includes.admin.navigation')
+@include('layouts.includes.admin.sidebar')
 
 <div class="p-4 sm:ml-64">
-    {{--Añadiendo margen superior--}}
-    <div class = "mt-14 flex items-center justify-between w-full">
+
+    <div class="mt-14 flex items-center justify-between w-full">
         @include('layouts.includes.admin.breadcrumb')
+
+        @isset($action)
+            <div>
+                {{ $action }}
+            </div>
+        @endisset
     </div>
-    {{$slot}}
+
+    {{ $slot }}
 </div>
 
-    @stack('modals')
+@stack('modals')
 
-    @livewireScripts
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+@livewireScripts
+<script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </body>
 </html>
