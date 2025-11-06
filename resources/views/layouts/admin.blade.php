@@ -19,6 +19,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://kit.fontawesome.com/c3672ea99d.js" crossorigin="anonymous"></script>
 
+    <!-- Sweet Alert 2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- WireUI -->
     <wireui:scripts />
 
@@ -45,9 +47,16 @@
     {{ $slot }}
 </div>
 
-@stack('modals')
+    @stack('modals')
 
-@livewireScripts
-<script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    @livewireScripts
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    {{-- Mostrar Sweet Alert --}}
+    @if(session('swal'))
+        <script>
+            Swal.fire(@json(session('swal')));
+        </script>
+    @endif
+
 </body>
 </html>
