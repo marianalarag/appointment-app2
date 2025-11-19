@@ -26,6 +26,34 @@
                 />
             </div>
 
+            {{-- NUEVO: Campos adicionales --}}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <x-wire-input
+                    label="Número de Identificación"
+                    name="id_number"
+                    placeholder="12345678"
+                    value="{{ old('id_number') }}"
+                />
+
+                <x-wire-input
+                    label="Teléfono"
+                    name="phone"
+                    placeholder="+1234567890"
+                    value="{{ old('phone') }}"
+                />
+            </div>
+
+            {{-- NUEVO: Campo de dirección --}}
+            <div class="mt-4">
+                <x-wire-textarea
+                    label="Dirección"
+                    name="address"
+                    placeholder="Dirección completa"
+                    value="{{ old('address') }}"
+                    rows="3"
+                />
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <x-wire-input
                     label="Contraseña"
