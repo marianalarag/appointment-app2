@@ -8,53 +8,101 @@
             @csrf
             @method('PUT')
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <x-wire-input
-                    label="Nombre"
-                    name="name"
-                    placeholder="Nombre completo"
-                    value="{{ old('name', $user->name) }}"
-                    required
-                />
+            <div class="space-y-4">
+                <div class="grid lg:grid-cols-2 gap-4">
+                    <x-wire-input
+                        name="name"
+                        label="Nombre"
+                        required
+                        :value="old('name', $user->name)"
+                        placeholder="Nombre completo"
+                        autocomplete="name"
+                    />
+
+                    <x-wire-input
+                        name="email"
+                        label="Email"
+                        required
+                        :value="old('email', $user->email)"
+                        placeholder="correo@ejemplo.com"
+                        autocomplete="email"
+                        inputmode="email"
+                    />
+
+                    <x-wire-input
+                        name="password"
+                        label="Contraseña"
+                        type="password"
+                        placeholder="Mínimo 8 caracteres"
+                        autocomplete="new-password"
+                        inputmode="password"
+                    />
+
+                    <x-wire-input
+                        name="password_confirmation"
+                        label="Confirmar contraseña"
+                        type="password"
+                        placeholder="Repita la contraseña"
+                        autocomplete="new-password"
+                        inputmode="password"
+                    />
+
+                    <x-wire-input
+                        name="id_number"
+                        label="Número de Identificación"
+                        required
+                        :value="old('id_number', $user->id_number)"
+                        placeholder="Ej. 12345678"
+                        autocomplete="off"
+                        inputmode="numeric"
+                    />
+
+                    <x-wire-input
+                        name="phone"
+                        label="Teléfono"
+                        required
+                        :value="old('phone', $user->phone)"
+                        placeholder="+5219990000000"
+                        autocomplete="tel"
+                        inputmode="tel"
+                    />
+                </div>
 
                 <x-wire-input
-                    label="Email"
-                    name="email"
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    value="{{ old('email', $user->email) }}"
+                    name="address"
+                    label="Dirección"
                     required
+                    :value="old('address', $user->address)"
+                    placeholder="Dirección completa"
+                    autocomplete="street-address"
                 />
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <x-wire-input
-                    label="Contraseña (dejar en blanco para no cambiar)"
-                    name="password"
-                    type="password"
-                    placeholder="********"
-                />
-
-                <x-wire-input
-                    label="Confirmar Contraseña"
-                    name="password_confirmation"
-                    type="password"
-                    placeholder="********"
-                />
-            </div>
-
-            <div class="mt-4">
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                <select name="role" id="role" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                    <option value="">Seleccionar Rol</option>
-                    @foreach($roles as $role)
-                        <option value="{{ $role->id }}" {{ (old('role', $user->roles->first()->id ?? '') == $role->id) ? 'selected' : '' }}>
+            <div class="space-y-1 mt-6">
+                <x-wire-native-select
+                    name="role"
+                    label="Rol"
+                    required
+                >
+                    <option value="">
+                        Seleccionar Rol
+                    </option>
+                    @foreach ($roles as $role)
+                        <option
+                            value="{{ $role->id }}"
+                            @selected(old('role', $user->roles->first()->id ?? '') == $role->id)
+                        >
                             {{ $role->name }}
                         </option>
                     @endforeach
-                </select>
+                </x-wire-native-select>
+
+                <p class="text-sm text-gray-500">
+                    Define los permisos y accesos del usuario
+                </p>
+
                 @error('role')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                <p class="text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -62,6 +110,7 @@
                 <x-wire-button href="{{ route('admin.users.index') }}" gray>
                     Cancelar
                 </x-wire-button>
+
                 <x-wire-button type="submit" blue>
                     <i class="fa-solid fa-save mr-2"></i>
                     Actualizar Usuario
