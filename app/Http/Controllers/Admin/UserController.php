@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -35,17 +35,25 @@ class UserController extends Controller
     {
         // Validación
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8|confirmed',
-            'role' => 'required|exists:roles,id'
+            'name'      => 'required|string|max:255',
+            'email'     => 'required|email|unique:users,email',
+            'password'  => 'required|min:8|confirmed',
+            'role'      => 'required|exists:roles,id',
+
+            // Nuevos campos
+            'id_number' => 'nullable|string|max:50',
+            'phone'     => 'nullable|string|max:20',
+            'address'   => 'nullable|string|max:500',
         ]);
 
         // Crear usuario
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name'      => $request->name,
+            'email'     => $request->email,
+            'password'  => Hash::make($request->password),
+            'id_number' => $request->id_number,
+            'phone'     => $request->phone,
+            'address'   => $request->address,
         ]);
 
         // Asignar rol
@@ -54,9 +62,9 @@ class UserController extends Controller
 
         // Mensaje de éxito
         session()->flash('swal', [
-            'icon' => 'success',
+            'icon'  => 'success',
             'title' => 'Usuario creado correctamente',
-            'text' => 'El usuario ha sido creado correctamente'
+            'text'  => 'El usuario ha sido creado correctamente',
         ]);
 
         return redirect()->route('admin.users.index');
@@ -86,19 +94,27 @@ class UserController extends Controller
     {
         // Validación
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|min:8|confirmed',
-            'role' => 'required|exists:roles,id'
+            'name'      => 'required|string|max:255',
+            'email'     => 'required|email|unique:users,email,' . $user->id,
+            'password'  => 'nullable|min:8|confirmed',
+            'role'      => 'required|exists:roles,id',
+
+            // Nuevos campos
+            'id_number' => 'nullable|string|max:50',
+            'phone'     => 'nullable|string|max:20',
+            'address'   => 'nullable|string|max:500',
         ]);
 
-        // Preparar datos
+        // Datos base
         $data = [
-            'name' => $request->name,
-            'email' => $request->email,
+            'name'      => $request->name,
+            'email'     => $request->email,
+            'id_number' => $request->id_number,
+            'phone'     => $request->phone,
+            'address'   => $request->address,
         ];
 
-        // Actualizar contraseña si se proporcionó
+        // Actualizar contraseña si viene
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -112,9 +128,9 @@ class UserController extends Controller
 
         // Mensaje de éxito
         session()->flash('swal', [
-            'icon' => 'success',
+            'icon'  => 'success',
             'title' => 'Usuario actualizado correctamente',
-            'text' => 'El usuario ha sido actualizado correctamente'
+            'text'  => 'El usuario ha sido actualizado correctamente',
         ]);
 
         return redirect()->route('admin.users.index');
@@ -125,24 +141,23 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        // Prevenir eliminación de usuario admin principal
+        // Proteger admin principal
         if ($user->id === 1) {
             session()->flash('swal', [
-                'icon' => 'error',
-                'title' => 'Error',
-                'text' => 'No puedes eliminar el usuario administrador principal'
+                'icon'  => 'error',
+                'title' => 'Acción no permitida',
+                'text'  => 'No puedes eliminar el usuario administrador principal',
             ]);
+
             return redirect()->route('admin.users.index');
         }
 
-        // Eliminar usuario
         $user->delete();
 
-        // Mensaje de éxito
         session()->flash('swal', [
-            'icon' => 'success',
-            'title' => 'Usuario eliminado correctamente',
-            'text' => 'El usuario ha sido eliminado correctamente'
+            'icon'  => 'success',
+            'title' => 'Usuario eliminado',
+            'text'  => 'El usuario ha sido eliminado correctamente',
         ]);
 
         return redirect()->route('admin.users.index');
