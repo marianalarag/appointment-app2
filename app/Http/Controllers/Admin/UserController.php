@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -34,42 +34,40 @@ class UserController extends Controller
     public function store(Request $request)
     {
         // Validación
-        $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|email|unique:users,email',
-            'password'  => 'required|min:8|confirmed',
-            'role'      => 'required|exists:roles,id',
-
-            // Nuevos campos
-            'id_number' => 'nullable|string|max:50',
-            'phone'     => 'nullable|string|max:20',
-            'address'   => 'nullable|string|max:500',
+        $data = $request->validate([
+            'name' => 'required|string|min:3|max:255',
+            'email' => 'required|string|email|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'id_number' => 'required|string|min:5|max:20|regex:/[A-Za-z0-9\-]+$/|unique:users',
+            'phone' => 'required|digits_between:7,15',
+            'address' => 'required|string|min:3|max:255',
+            'role_id' => 'required|exists:roles,id'
         ]);
 
-        // Crear usuario
+        // Crear usuario con TODOS los campos
         $user = User::create([
-            'name'      => $request->name,
-            'email'     => $request->email,
-            'password'  => Hash::make($request->password),
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
             'id_number' => $request->id_number,
-            'phone'     => $request->phone,
-            'address'   => $request->address,
+            'phone' => $request->phone,
+            'address' => $request->address,
         ]);
 
-        // Asignar rol
-        $role = Role::findById($request->role);
+        // NOTA: En tu formulario usas 'role_id' pero en el controlador buscas 'role'
+        // Corrige esto para que coincida:
+        $role = Role::findById($request->role_id); // Cambia a role_id
         $user->assignRole($role);
 
         // Mensaje de éxito
         session()->flash('swal', [
-            'icon'  => 'success',
+            'icon' => 'success',
             'title' => 'Usuario creado correctamente',
-            'text'  => 'El usuario ha sido creado correctamente',
+            'text' => 'El usuario ha sido creado correctamente'
         ]);
 
         return redirect()->route('admin.users.index');
     }
-
     /**
      * Display the specified resource.
      */
@@ -94,27 +92,33 @@ class UserController extends Controller
     {
         // Validación
         $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|email|unique:users,email,' . $user->id,
-            'password'  => 'nullable|min:8|confirmed',
-            'role'      => 'required|exists:roles,id',
-
-            // Nuevos campos
-            'id_number' => 'nullable|string|max:50',
-            'phone'     => 'nullable|string|max:20',
-            'address'   => 'nullable|string|max:500',
+            'name' => 'required|string|min:3|max:255',
+            'email' => 'required|string|email|unique:users,email,' . $user->id,
+            'id_number' => 'required|string|min:5|max:20|regex:/[A-Za-z0-9\-]+$/|unique:users,id_number,' . $user->id,
+            'phone' => 'required|digits_between:7,15',
+            'address' => 'required|string|min:3|max:255',
+            'role_id' => 'required|exists:roles,id',
+            'password' => 'nullable|min:8|confirmed',
+            'current_password' => [
+                'required_unless:email,' . $user->email, // ¡CORRECCIÓN AQUÍ!
+                function ($attribute, $value, $fail) use ($user) {
+                    if (!Hash::check($value, $user->password)) {
+                        $fail('La contraseña actual es incorrecta.');
+                    }
+                },
+            ],
         ]);
 
-        // Datos base
+        // Preparar datos - INCLUYE TODOS LOS CAMPOS
         $data = [
-            'name'      => $request->name,
-            'email'     => $request->email,
+            'name' => $request->name,
+            'email' => $request->email,
             'id_number' => $request->id_number,
-            'phone'     => $request->phone,
-            'address'   => $request->address,
+            'phone' => $request->phone,
+            'address' => $request->address,
         ];
 
-        // Actualizar contraseña si viene
+        // Actualizar contraseña si se proporcionó
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -123,17 +127,17 @@ class UserController extends Controller
         $user->update($data);
 
         // Sincronizar rol
-        $role = Role::findById($request->role);
+        $role = Role::findById($request->role_id);
         $user->syncRoles([$role]);
 
         // Mensaje de éxito
         session()->flash('swal', [
-            'icon'  => 'success',
+            'icon' => 'success',
             'title' => 'Usuario actualizado correctamente',
-            'text'  => 'El usuario ha sido actualizado correctamente',
+            'text' => 'El usuario ha sido actualizado correctamente'
         ]);
 
-        return redirect()->route('admin.users.index');
+        return redirect()->route('admin.users.edit', $user->id);
     }
 
     /**
@@ -141,23 +145,38 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        // Proteger admin principal
-        if ($user->id === 1) {
+        //No permitir que el usuario logueado se borre a sí mismo
+        if (auth()->id() === $user->id) {
             session()->flash('swal', [
-                'icon'  => 'error',
-                'title' => 'Acción no permitida',
-                'text'  => 'No puedes eliminar el usuario administrador principal',
+                'icon' => 'error',
+                'title' => 'Error',
+                'text' => 'No puedes eliminarte a ti mismo'
             ]);
-
+            abort(403, 'No puedes borrar tu propio usuario');
             return redirect()->route('admin.users.index');
         }
 
+        // Prevenir eliminación de usuario admin principal (id 1)
+        if ($user->id === 1) {
+            session()->flash('swal', [
+                'icon' => 'error',
+                'title' => 'Error',
+                'text' => 'No puedes eliminar el usuario administrador principal'
+            ]);
+            return redirect()->route('admin.users.index');
+        }
+
+        // Eliminar roles asociados al usuario
+        $user->roles()->detach();
+
+        // Eliminar el usuario
         $user->delete();
 
+        // Mensaje de éxito
         session()->flash('swal', [
-            'icon'  => 'success',
-            'title' => 'Usuario eliminado',
-            'text'  => 'El usuario ha sido eliminado correctamente',
+            'icon' => 'success',
+            'title' => 'Usuario eliminado correctamente',
+            'text' => 'El usuario ha sido eliminado correctamente'
         ]);
 
         return redirect()->route('admin.users.index');
