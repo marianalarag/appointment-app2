@@ -5,44 +5,59 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // Verificar si el usuario administrador ya existe
-        if (!User::where('email', 'admin@simify.com')->exists()) {
-            // Crear usuario administrador
-            $admin = User::create([
+        // Paciente
+        User::updateOrCreate(
+            ['email' => 'paciente@simify.com'],
+            [
+                'name' => 'Paciente',
+                'password' => Hash::make('password'),
+                'id_number' => '1111111111',
+                'phone' => '1111111111',
+            ]
+        )->assignRole('Paciente');
+
+        // Doctor
+        User::updateOrCreate(
+            ['email' => 'doctor@simify.com'],
+            [
+                'name' => 'Doctor',
+                'password' => Hash::make('password'),
+                'id_number' => '2222222222',
+                'phone' => '2222222222',
+            ]
+        )->assignRole('Doctor');
+
+        // Recepcionista
+        User::updateOrCreate(
+            ['email' => 'recepcionista@simify.com'],
+            [
+                'name' => 'Recepcionista',
+                'password' => Hash::make('password'),
+                'id_number' => '3333333333',
+                'phone' => '3333333333',
+            ]
+        )->assignRole('Recepcionista');
+
+        // Administrador
+        User::updateOrCreate(
+            ['email' => 'admin@simify.com'],
+            [
                 'name' => 'Administrador',
-                'email' => 'admin@simify.com',
                 'password' => Hash::make('password'),
-                'id_number' => '12345678',
-                'phone' => '+1234567890',
+                'id_number' => '4444444444',
+                'phone' => '4444444444',
                 'address' => 'Dirección principal del sistema',
-            ]);
+            ]
+        )->assignRole('Administrador');
 
-            // Asignar rol de Administrador
-            $adminRole = Role::where('name', 'Administrador')->first();
-            $admin->assignRole($adminRole);
-        }
-
-        // Verificar si el usuario de prueba ya existe
-        if (!User::where('email', 'usuario@simify.com')->exists()) {
-            // Crear usuario de prueba
-            $user = User::create([
-                'name' => 'Usuario Prueba',
-                'email' => 'usuario@simify.com',
-                'password' => Hash::make('password'),
-                'id_number' => '87654321',
-                'phone' => '+0987654321',
-                'address' => 'Dirección de prueba',
-            ]);
-
-            // Asignar rol por defecto (Paciente)
-            $userRole = Role::where('name', 'Paciente')->first();
-            $user->assignRole($userRole);
-        }
+        // Usuarios de prueba (Pacientes)
+        User::factory(10)->create()->each(function ($user) {
+            $user->assignRole('Paciente');
+        });
     }
 }

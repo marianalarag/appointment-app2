@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,20 +13,27 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Llamar al RoleSeeder creado
+        // Llamar a los seeders necesarios
         $this->call([
             RoleSeeder::class,
-            UserSeeder::class, // NUEVO: Agregar UserSeeder
+            UserSeeder::class,
+            BloodTypeSeeder::class,
+            PatientSeeder::class,
         ]);
 
-        // Usuario de prueba adicional (opcional, ya que UserSeeder crea usuarios)
-        User::factory()->create([
-            'name' => 'Mariana Lara',
-            'email' => 'mariana@tecsoftware.com',
-            'password' => Hash::make('mariana'),
-            'id_number' => '123456789', // NUEVO
-            'phone' => '+1234567890',   // NUEVO
-            'address' => 'Dirección de prueba', // NUEVO
-        ]);
+        // Crear usuario administrador (si no existe)
+        $admin = User::firstOrCreate(
+            ['email' => 'mariana@tecsoftware.com'],
+            [
+                'name' => 'Mariana Lara',
+                'password' => Hash::make('mariana'),
+                'id_number' => '123456789',
+                'phone' => '+1234567890',
+                'address' => 'Dirección de prueba',
+            ]
+        );
+
+        // Asignar rol Administrador
+        $admin->assignRole('Administrador');
     }
 }
