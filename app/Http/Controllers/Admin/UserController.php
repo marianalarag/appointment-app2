@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Patient;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -41,10 +43,10 @@ class UserController extends Controller
             'id_number' => 'required|string|min:5|max:20|regex:/[A-Za-z0-9\-]+$/|unique:users',
             'phone' => 'required|digits_between:7,15',
             'address' => 'required|string|min:3|max:255',
-            'role_id' => 'required|exists:roles,id'
+            'role' => 'required|exists:roles,id'
         ]);
 
-        // Crear usuario con TODOS los campos
+        // Crear usuario
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -54,10 +56,42 @@ class UserController extends Controller
             'address' => $request->address,
         ]);
 
-        // NOTA: En tu formulario usas 'role_id' pero en el controlador buscas 'role'
-        // Corrige esto para que coincida:
-        $role = Role::findById($request->role_id); // Cambia a role_id
+        // Asignar rol
+        $role = Role::findById($request->role);
         $user->assignRole($role);
+
+        // 📌 CREAR REGISTRO EN PATIENTS SI EL ROL ES PACIENTE
+        // IMPORTANTE: El rol se llama 'Paciente' con P mayúscula
+        if ($role->name === 'Paciente') {
+            Log::info('Creando paciente para usuario ID: ' . $user->id);
+
+            // Verifica si ya existe un registro para este usuario
+            if (!$user->patient) {
+                try {
+                    Patient::create([
+                        'user_id' => $user->id,
+                        'address' => $request->address,
+                        'allergies' => null,
+                        'emergency_contact_name' => null,
+                        'emergency_contact_phone' => null,
+                        'emergency_contact_relationship' => null,
+                        'chronic_conditions' => null,
+                        'family_history' => null,
+                        'observations' => null,
+                    ]);
+
+                    Log::info('✅ Paciente creado exitosamente para usuario: ' . $user->name);
+
+                } catch (\Exception $e) {
+                    Log::error('❌ Error al crear paciente: ' . $e->getMessage());
+                    Log::error('Error details:', ['exception' => $e]);
+                }
+            } else {
+                Log::info('El usuario ya tiene registro de paciente');
+            }
+        } else {
+            Log::info('Usuario NO es paciente, rol: ' . $role->name);
+        }
 
         // Mensaje de éxito
         session()->flash('swal', [
@@ -68,6 +102,7 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index');
     }
+
     /**
      * Display the specified resource.
      */
@@ -97,10 +132,10 @@ class UserController extends Controller
             'id_number' => 'required|string|min:5|max:20|regex:/[A-Za-z0-9\-]+$/|unique:users,id_number,' . $user->id,
             'phone' => 'required|digits_between:7,15',
             'address' => 'required|string|min:3|max:255',
-            'role_id' => 'required|exists:roles,id',
+            'role' => 'required|exists:roles,id',
             'password' => 'nullable|min:8|confirmed',
             'current_password' => [
-                'required_unless:email,' . $user->email, // ¡CORRECCIÓN AQUÍ!
+                'required_unless:email,' . $user->email,
                 function ($attribute, $value, $fail) use ($user) {
                     if (!Hash::check($value, $user->password)) {
                         $fail('La contraseña actual es incorrecta.');
@@ -109,7 +144,7 @@ class UserController extends Controller
             ],
         ]);
 
-        // Preparar datos - INCLUYE TODOS LOS CAMPOS
+        // Preparar datos
         $data = [
             'name' => $request->name,
             'email' => $request->email,
@@ -123,12 +158,56 @@ class UserController extends Controller
             $data['password'] = Hash::make($request->password);
         }
 
+        // Obtener rol anterior
+        $oldRole = $user->roles->first();
+        $oldRoleName = $oldRole ? $oldRole->name : null;
+
         // Actualizar usuario
         $user->update($data);
 
         // Sincronizar rol
-        $role = Role::findById($request->role_id);
+        $role = Role::findById($request->role);
         $user->syncRoles([$role]);
+
+        Log::info('Actualizando usuario ID: ' . $user->id, [
+            'rol_anterior' => $oldRoleName,
+            'rol_nuevo' => $role->name
+        ]);
+
+        // 📌 ACTUALIZAR/CREAR REGISTRO EN PATIENTS SI EL ROL ES PACIENTE
+        if ($role->name === 'Paciente') {
+            Log::info('Usuario es Paciente, manejando registro...');
+
+            if ($user->patient) {
+                // Actualizar dirección si ya existe
+                $user->patient->update(['address' => $request->address]);
+                Log::info('✅ Paciente actualizado');
+            } else {
+                // Crear nuevo registro
+                try {
+                    Patient::create([
+                        'user_id' => $user->id,
+                        'address' => $request->address,
+                        'allergies' => null,
+                        'emergency_contact_name' => null,
+                        'emergency_contact_phone' => null,
+                        'emergency_contact_relationship' => null,
+                        'chronic_conditions' => null,
+                        'family_history' => null,
+                        'observations' => null,
+                    ]);
+                    Log::info('✅ Nuevo paciente creado para usuario existente');
+                } catch (\Exception $e) {
+                    Log::error('❌ Error al crear paciente: ' . $e->getMessage());
+                }
+            }
+        } else if ($oldRoleName === 'Paciente' && $role->name !== 'Paciente') {
+            // 📌 SI CAMBIA DE ROL (ya no es paciente), eliminar registro de patients
+            if ($user->patient) {
+                Log::info('Eliminando registro de paciente porque cambió de rol');
+                $user->patient->delete();
+            }
+        }
 
         // Mensaje de éxito
         session()->flash('swal', [
@@ -145,14 +224,13 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        //No permitir que el usuario logueado se borre a sí mismo
+        // No permitir que el usuario logueado se borre a sí mismo
         if (auth()->id() === $user->id) {
             session()->flash('swal', [
                 'icon' => 'error',
                 'title' => 'Error',
                 'text' => 'No puedes eliminarte a ti mismo'
             ]);
-            abort(403, 'No puedes borrar tu propio usuario');
             return redirect()->route('admin.users.index');
         }
 
@@ -164,6 +242,12 @@ class UserController extends Controller
                 'text' => 'No puedes eliminar el usuario administrador principal'
             ]);
             return redirect()->route('admin.users.index');
+        }
+
+        // 📌 Eliminar registro de patients si existe
+        if ($user->patient) {
+            $user->patient->delete();
+            Log::info('Registro de paciente eliminado para usuario: ' . $user->id);
         }
 
         // Eliminar roles asociados al usuario
