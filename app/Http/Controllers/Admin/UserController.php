@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Patient;
+use App\Models\Doctor; // 👈 IMPORTAR MODELO DOCTOR
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
@@ -60,37 +61,13 @@ class UserController extends Controller
         $role = Role::findById($request->role);
         $user->assignRole($role);
 
-        // 📌 CREAR REGISTRO EN PATIENTS SI EL ROL ES PACIENTE
-        // IMPORTANTE: El rol se llama 'Paciente' con P mayúscula
+        // 📌 CREAR REGISTRO SEGÚN EL ROL
         if ($role->name === 'Paciente') {
-            Log::info('Creando paciente para usuario ID: ' . $user->id);
-
-            // Verifica si ya existe un registro para este usuario
-            if (!$user->patient) {
-                try {
-                    Patient::create([
-                        'user_id' => $user->id,
-                        'address' => $request->address,
-                        'allergies' => null,
-                        'emergency_contact_name' => null,
-                        'emergency_contact_phone' => null,
-                        'emergency_contact_relationship' => null,
-                        'chronic_conditions' => null,
-                        'family_history' => null,
-                        'observations' => null,
-                    ]);
-
-                    Log::info('✅ Paciente creado exitosamente para usuario: ' . $user->name);
-
-                } catch (\Exception $e) {
-                    Log::error('❌ Error al crear paciente: ' . $e->getMessage());
-                    Log::error('Error details:', ['exception' => $e]);
-                }
-            } else {
-                Log::info('El usuario ya tiene registro de paciente');
-            }
-        } else {
-            Log::info('Usuario NO es paciente, rol: ' . $role->name);
+            $this->crearPaciente($user, $request);
+        }
+        // 👇 NUEVO: Crear registro en doctors si el rol es Doctor
+        else if ($role->name === 'Doctor') {
+            $this->crearDoctor($user, $request);
         }
 
         // Mensaje de éxito
@@ -174,40 +151,8 @@ class UserController extends Controller
             'rol_nuevo' => $role->name
         ]);
 
-        // 📌 ACTUALIZAR/CREAR REGISTRO EN PATIENTS SI EL ROL ES PACIENTE
-        if ($role->name === 'Paciente') {
-            Log::info('Usuario es Paciente, manejando registro...');
-
-            if ($user->patient) {
-                // Actualizar dirección si ya existe
-                $user->patient->update(['address' => $request->address]);
-                Log::info('✅ Paciente actualizado');
-            } else {
-                // Crear nuevo registro
-                try {
-                    Patient::create([
-                        'user_id' => $user->id,
-                        'address' => $request->address,
-                        'allergies' => null,
-                        'emergency_contact_name' => null,
-                        'emergency_contact_phone' => null,
-                        'emergency_contact_relationship' => null,
-                        'chronic_conditions' => null,
-                        'family_history' => null,
-                        'observations' => null,
-                    ]);
-                    Log::info('✅ Nuevo paciente creado para usuario existente');
-                } catch (\Exception $e) {
-                    Log::error('❌ Error al crear paciente: ' . $e->getMessage());
-                }
-            }
-        } else if ($oldRoleName === 'Paciente' && $role->name !== 'Paciente') {
-            // 📌 SI CAMBIA DE ROL (ya no es paciente), eliminar registro de patients
-            if ($user->patient) {
-                Log::info('Eliminando registro de paciente porque cambió de rol');
-                $user->patient->delete();
-            }
-        }
+        // 📌 MANEJAR SEGÚN EL NUEVO ROL
+        $this->manejarCambioRol($user, $oldRoleName, $role->name, $request);
 
         // Mensaje de éxito
         session()->flash('swal', [
@@ -244,10 +189,16 @@ class UserController extends Controller
             return redirect()->route('admin.users.index');
         }
 
-        // 📌 Eliminar registro de patients si existe
+        // 📌 Eliminar registros relacionados
         if ($user->patient) {
             $user->patient->delete();
             Log::info('Registro de paciente eliminado para usuario: ' . $user->id);
+        }
+
+        // 👇 NUEVO: Eliminar registro de doctor si existe
+        if ($user->doctor) {
+            $user->doctor->delete();
+            Log::info('Registro de doctor eliminado para usuario: ' . $user->id);
         }
 
         // Eliminar roles asociados al usuario
@@ -264,5 +215,97 @@ class UserController extends Controller
         ]);
 
         return redirect()->route('admin.users.index');
+    }
+
+    /**
+     * Método auxiliar para crear paciente
+     */
+    private function crearPaciente($user, $request)
+    {
+        Log::info('Creando paciente para usuario ID: ' . $user->id);
+
+        if (!$user->patient) {
+            try {
+                Patient::create([
+                    'user_id' => $user->id,
+                    'address' => $request->address,
+                    'allergies' => null,
+                    'emergency_contact_name' => null,
+                    'emergency_contact_phone' => null,
+                    'emergency_contact_relationship' => null,
+                    'chronic_conditions' => null,
+                    'family_history' => null,
+                    'observations' => null,
+                ]);
+                Log::info('✅ Paciente creado exitosamente');
+            } catch (\Exception $e) {
+                Log::error('❌ Error al crear paciente: ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * 👇 NUEVO: Método auxiliar para crear doctor
+     */
+    private function crearDoctor($user, $request)
+    {
+        Log::info('Creando doctor para usuario ID: ' . $user->id);
+
+        if (!$user->doctor) {
+            try {
+                Doctor::create([
+                    'user_id' => $user->id,
+                    'specialty_id' => 1, // Por defecto, asignar primera especialidad
+                    'license_number' => 'PENDIENTE-' . $user->id, // Temporal
+                    'biography' => null,
+                ]);
+                Log::info('✅ Doctor creado exitosamente para usuario: ' . $user->name);
+            } catch (\Exception $e) {
+                Log::error('❌ Error al crear doctor: ' . $e->getMessage());
+            }
+        } else {
+            Log::info('El usuario ya tiene registro de doctor');
+        }
+    }
+
+    /**
+     * 👇 NUEVO: Método para manejar cambios de rol
+     */
+    private function manejarCambioRol($user, $oldRoleName, $newRoleName, $request)
+    {
+        // Si el nuevo rol es Paciente
+        if ($newRoleName === 'Paciente') {
+            if ($user->patient) {
+                $user->patient->update(['address' => $request->address]);
+                Log::info('✅ Paciente actualizado');
+            } else {
+                $this->crearPaciente($user, $request);
+            }
+        }
+        // Si el nuevo rol es Doctor
+        else if ($newRoleName === 'Doctor') {
+            if ($user->doctor) {
+                // Actualizar dirección si existe relación
+                Log::info('Doctor ya existe, no se actualizan datos médicos');
+            } else {
+                $this->crearDoctor($user, $request);
+            }
+        }
+
+        // Si cambia de Paciente a otro rol
+        if ($oldRoleName === 'Paciente' && $newRoleName !== 'Paciente') {
+            if ($user->patient) {
+                $user->patient->delete();
+                Log::info('Registro de paciente eliminado por cambio de rol');
+            }
+        }
+
+        // Si cambia de Doctor a otro rol
+        if ($oldRoleName === 'Doctor' && $newRoleName !== 'Doctor') {
+            if ($user->doctor) {
+                $user->doctor->delete();
+                Log::info('Registro de doctor eliminado por cambio de rol');
+            }
+        }
     }
 }
