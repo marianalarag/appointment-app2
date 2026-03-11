@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
-
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
@@ -18,7 +17,11 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             BloodTypeSeeder::class,
             PatientSeeder::class,
-            SpecialtySeeder::class, // Si existe
+            PatientDemoSeeder::class,
+            SpecialtySeeder::class,
+            DoctorSeeder::class,
+            DoctorScheduleSeeder::class,
+            AppointmentSeeder::class,
         ]);
 
         // Crear usuario administrador (FORZAR CREACIÓN)

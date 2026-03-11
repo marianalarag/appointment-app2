@@ -61,23 +61,55 @@ class UserController extends Controller
         $role = Role::findById($request->role);
         $user->assignRole($role);
 
-        // 📌 CREAR REGISTRO SEGÚN EL ROL
-        if ($role->name === 'Paciente') {
-            $this->crearPaciente($user, $request);
-        }
-        // 👇 NUEVO: Crear registro en doctors si el rol es Doctor
-        else if ($role->name === 'Doctor') {
-            $this->crearDoctor($user, $request);
-        }
-
-        // Mensaje de éxito
-        session()->flash('swal', [
+        // Variable para controlar la redirección
+        $redirectRoute = 'admin.users.index';
+        $redirectParams = [];
+        $redirectMessage = [
             'icon' => 'success',
             'title' => 'Usuario creado correctamente',
             'text' => 'El usuario ha sido creado correctamente'
-        ]);
+        ];
 
-        return redirect()->route('admin.users.index');
+        // 📌 CREAR REGISTRO SEGÚN EL ROL
+        if ($role->name === 'Paciente') {
+            $patient = $this->crearPaciente($user, $request);
+
+            // Opcional: Redirigir al edit de pacientes
+            // if ($patient) {
+            //     $redirectRoute = 'admin.patients.edit';
+            //     $redirectParams = ['patient' => $patient];
+            //     $redirectMessage = [
+            //         'icon' => 'success',
+            //         'title' => '¡Paciente creado!',
+            //         'text' => 'El paciente ha sido creado. Ahora completa su información médica.'
+            //     ];
+            // }
+
+            Log::info('Paciente creado para usuario: ' . $user->id);
+        }
+        // 👇 Si el rol es Doctor, redirige al edit de doctores
+        else if ($role->name === 'Doctor') {
+            $doctor = $this->crearDoctor($user, $request);
+
+            // 👇 CAMBIO IMPORTANTE: Redirigir al edit del doctor recién creado
+            if ($doctor) {
+                $redirectRoute = 'admin.doctors.edit';
+                $redirectParams = ['doctor' => $doctor];
+                $redirectMessage = [
+                    'icon' => 'success',
+                    'title' => '¡Doctor creado!',
+                    'text' => 'El doctor ha sido creado. Ahora completa su información profesional.'
+                ];
+            }
+        } else {
+            Log::info('Usuario NO es paciente ni doctor, rol: ' . $role->name);
+        }
+
+        // Mensaje de éxito personalizado
+        session()->flash('swal', $redirectMessage);
+
+        // Redirigir según el rol
+        return redirect()->route($redirectRoute, $redirectParams);
     }
 
     /**
@@ -195,7 +227,7 @@ class UserController extends Controller
             Log::info('Registro de paciente eliminado para usuario: ' . $user->id);
         }
 
-        // 👇 NUEVO: Eliminar registro de doctor si existe
+        // 👇 Eliminar registro de doctor si existe
         if ($user->doctor) {
             $user->doctor->delete();
             Log::info('Registro de doctor eliminado para usuario: ' . $user->id);
@@ -226,7 +258,7 @@ class UserController extends Controller
 
         if (!$user->patient) {
             try {
-                Patient::create([
+                $patient = Patient::create([
                     'user_id' => $user->id,
                     'address' => $request->address,
                     'allergies' => null,
@@ -237,15 +269,19 @@ class UserController extends Controller
                     'family_history' => null,
                     'observations' => null,
                 ]);
-                Log::info('✅ Paciente creado exitosamente');
+                Log::info('✅ Paciente creado exitosamente para usuario: ' . $user->name);
+                return $patient;
             } catch (\Exception $e) {
                 Log::error('❌ Error al crear paciente: ' . $e->getMessage());
+                Log::error('Error details:', ['exception' => $e]);
+                return null;
             }
         }
+        return $user->patient;
     }
 
     /**
-     * 👇 NUEVO: Método auxiliar para crear doctor
+     * Método auxiliar para crear doctor (MODIFICADO PARA DEVOLVER EL DOCTOR)
      */
     private function crearDoctor($user, $request)
     {
@@ -253,23 +289,36 @@ class UserController extends Controller
 
         if (!$user->doctor) {
             try {
-                Doctor::create([
+                // Obtener la primera especialidad disponible (o crear una por defecto)
+                $specialtyId = 1;
+                $specialty = \App\Models\Specialty::first();
+                if ($specialty) {
+                    $specialtyId = $specialty->id;
+                }
+
+                $doctor = Doctor::create([
                     'user_id' => $user->id,
-                    'specialty_id' => 1, // Por defecto, asignar primera especialidad
+                    'specialty_id' => $specialtyId, // Primera especialidad disponible
                     'license_number' => 'PENDIENTE-' . $user->id, // Temporal
                     'biography' => null,
                 ]);
                 Log::info('✅ Doctor creado exitosamente para usuario: ' . $user->name);
+
+                // 👇 IMPORTANTE: Devolver el doctor creado
+                return $doctor;
+
             } catch (\Exception $e) {
                 Log::error('❌ Error al crear doctor: ' . $e->getMessage());
+                Log::error('Error details:', ['exception' => $e]);
+                return null;
             }
-        } else {
-            Log::info('El usuario ya tiene registro de doctor');
         }
+
+        return $user->doctor;
     }
 
     /**
-     * 👇 NUEVO: Método para manejar cambios de rol
+     * Método para manejar cambios de rol
      */
     private function manejarCambioRol($user, $oldRoleName, $newRoleName, $request)
     {
@@ -285,7 +334,7 @@ class UserController extends Controller
         // Si el nuevo rol es Doctor
         else if ($newRoleName === 'Doctor') {
             if ($user->doctor) {
-                // Actualizar dirección si existe relación
+                // Actualizar si existe relación
                 Log::info('Doctor ya existe, no se actualizan datos médicos');
             } else {
                 $this->crearDoctor($user, $request);
