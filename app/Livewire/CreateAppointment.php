@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Specialty;
+use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -250,7 +251,7 @@ class CreateAppointment extends Component
         $endTime = $startTime->copy()->addMinutes(15);
 
         try {
-            Appointment::create([
+            $appointment = Appointment::create([
                 'doctor_id'  => $this->selected_doctor_id,
                 'patient_id' => $this->patient_id,
                 'date'       => $this->appointment_date,
@@ -260,6 +261,17 @@ class CreateAppointment extends Component
                 'reason'     => $this->reason,
                 'status'     => \App\Models\Appointment::STATUS_PROGRAMADO,
             ]);
+
+            // Enviar notificación de confirmación por WhatsApp
+            $patient = Patient::with('user')->find($this->patient_id);
+            $doctor = Doctor::with('user')->find($this->selected_doctor_id);
+            
+            if ($patient && $patient->user && $patient->user->phone) {
+                $whatsappService = new WhatsAppService();
+                $dateFormatted = Carbon::parse($this->appointment_date)->format('d/m/Y');
+                $message = "Hola {$patient->user->name}, tu cita médica con el Dr. {$doctor->user->name} ha sido confirmada para el {$dateFormatted} a las {$this->appointment_time}.";
+                $whatsappService->sendMessage($patient->user->phone, $message);
+            }
 
             $this->dispatch('notification', [
                 'type' => 'success',
