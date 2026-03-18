@@ -15,8 +15,14 @@ test('Un usuario no puede eliminarse a sí mismo', function () {
     //3) Simulamos una petición HTTP DELETE
     $response = $this->delete(route('admin.users.destroy', $user));
 
-    //4) Esperamos que el servidor prohiba la acción (403 Forbidden)
-    $response->assertStatus(403);
+    //4) Esperamos que el servidor redirija con un error (302)
+    $response->assertStatus(302);
+    $response->assertSessionHas('swal');
+
+    $swal = session('swal');
+    if ($swal) {
+        $this->assertEquals('error', $swal['icon'] ?? null);
+    }
 
     //5) Verificar que el usuario sigue existiendo en BD
     $this->assertDatabaseHas('users', [
