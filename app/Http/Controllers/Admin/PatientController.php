@@ -22,7 +22,8 @@ class PatientController extends Controller
      */
     public function create()
     {
-        return view('admin.patients.create');
+        $bloodTypes = \App\Models\BloodType::all();
+        return view('admin.patients.create', compact('bloodTypes'));
     }
 
     /**
@@ -30,7 +31,42 @@ class PatientController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'id_number' => 'required|string|max:50|unique:users,id_number',
+            'phone' => 'nullable|string|max:20',
+            'blood_type_id' => 'nullable|exists:blood_types,id',
+            'address' => 'nullable|string',
+            'emergency_contact_name' => 'nullable|string|max:255',
+            'emergency_contact_phone' => 'nullable|string|max:20',
+            'allergies' => 'nullable|string',
+        ]);
+
+        $user = \App\Models\User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'id_number' => $validated['id_number'],
+            'phone' => $validated['phone'],
+        ]);
+
+        $user->assignRole('paciente');
+
+        $user->patient()->create([
+            'blood_type_id' => $validated['blood_type_id'],
+            'address' => $validated['address'],
+            'emergency_contact_name' => $validated['emergency_contact_name'],
+            'emergency_contact_phone' => $validated['emergency_contact_phone'],
+            'allergies' => $validated['allergies'],
+        ]);
+
+        return redirect()->route('admin.patients.index')->with('swal', [
+            'icon' => 'success',
+            'title' => 'Éxito',
+            'text' => 'Paciente creado correctamente',
+        ]);
     }
 
     /**

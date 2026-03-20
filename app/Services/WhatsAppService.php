@@ -40,8 +40,13 @@ class WhatsAppService
         }
 
         try {
-            $twilio = new Client($this->sid, $this->token);
-            
+            // Desactivar temporalmente la verificación SSL para pruebas en local (solo usar en Windows/Local, no en Producción)
+            $httpClient = new \Twilio\Http\CurlClient([
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => 0,
+            ]);
+            $twilio = new Client($this->sid, $this->token, null, null, $httpClient);
+
             $messageResponse = $twilio->messages->create(
                 $to,
                 [
