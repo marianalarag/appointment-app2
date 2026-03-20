@@ -18,6 +18,7 @@
         "livewire/livewire": "^3.6.4",
         "rappasoft/laravel-livewire-tables": "^3.7",
         "spatie/laravel-permission": "^6.21",
+        "twilio/sdk": "^8.11",
         "wireui/wireui": "^2.4"
     },
     "require-dev": {
@@ -76,10 +77,7 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "php-http/discovery": true
-        }
+        "allow-plugins": false
     },
     "minimum-stability": "stable",
     "prefer-stable": true

@@ -7,6 +7,7 @@ use App\Models\Doctor;
 use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class DoctorController extends Controller
@@ -26,40 +27,41 @@ class DoctorController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:8|confirmed',
-            'phone' => 'nullable|string',
-            'address' => 'nullable|string',
-            'specialty_id' => 'required|exists:specialties,id',
-            'license_number' => 'required|string|unique:doctors',
-            'biography' => 'nullable|string',
+            'name'           => 'required|string|max:255',
+            'email'          => 'required|email|unique:users,email',
+            'id_number'      => 'nullable|string|unique:users,id_number',
+            'password'       => 'required|min:8|confirmed',
+            'phone'          => 'nullable|string|max:20',
+            'address'        => 'nullable|string|max:255',
+            'specialty_id'   => 'required|exists:specialties,id',
+            'license_number' => 'required|string|unique:doctors,license_number',
+            'biography'      => 'nullable|string',
         ]);
 
-        // Crear usuario
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'address' => $request->address,
-        ]);
+        DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name'      => $request->name,
+                'email'     => $request->email,
+                'password'  => Hash::make($request->password),
+                'id_number' => $request->id_number,
+                'phone'     => $request->phone,
+                'address'   => $request->address,
+            ]);
 
-        // Asignar rol de doctor
-        $user->assignRole('Doctor');
+            $user->assignRole('Doctor');
 
-        // Crear doctor
-        Doctor::create([
-            'user_id' => $user->id,
-            'specialty_id' => $request->specialty_id,
-            'license_number' => $request->license_number,
-            'biography' => $request->biography,
-        ]);
+            Doctor::create([
+                'user_id'        => $user->id,
+                'specialty_id'   => $request->specialty_id,
+                'license_number' => $request->license_number,
+                'biography'      => $request->biography,
+            ]);
+        });
 
         session()->flash('swal', [
-            'icon' => 'success',
+            'icon'  => 'success',
             'title' => '¡Doctor creado!',
-            'text' => 'El doctor ha sido registrado exitosamente.'
+            'text'  => 'El doctor ha sido registrado exitosamente.',
         ]);
 
         return redirect()->route('admin.doctors.index');

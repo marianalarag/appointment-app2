@@ -115,7 +115,7 @@ class RoleController extends Controller
     public function destroy(Role $role)
     {
         //Restringir la acción para los primeros 4 roles fijos
-        if ($role->id <=4){
+        if ($role->id <= 4){
             //Variable de un solo uso
             session()->flash('swal',
                 [
@@ -123,6 +123,15 @@ class RoleController extends Controller
                     'title' => 'Error',
                     'text' => 'No puedes eliminar este rol'
                 ]);
+            return redirect()->route('admin.roles.index');
+        }
+
+        if ($role->users()->count() > 0) {
+            session()->flash('swal', [
+                'icon' => 'error',
+                'title' => 'No se puede eliminar el rol',
+                'text' => 'Este rol está asignado a usuarios.'
+            ]);
             return redirect()->route('admin.roles.index');
         }
 

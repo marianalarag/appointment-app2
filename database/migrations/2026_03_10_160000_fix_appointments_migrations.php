@@ -10,14 +10,14 @@ return new class extends Migration
     public function up(): void
     {
         // Deshabilitar verificación de claves foráneas temporalmente
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::disableForeignKeyConstraints();
         
         // Dropear tablas si existen
         Schema::dropIfExists('appointments');
         Schema::dropIfExists('doctor_schedules');
         
         // Reabilitar verificación
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        Schema::enableForeignKeyConstraints();
 
         // Crear doctor_schedules (corregido)
         Schema::create('doctor_schedules', function (Blueprint $table) {
