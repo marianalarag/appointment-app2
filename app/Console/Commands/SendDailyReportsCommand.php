@@ -35,7 +35,7 @@ class SendDailyReportsCommand extends Command
         
         $appointments = Appointment::with(['doctor.user', 'patient.user'])
             ->whereDate('date', $today)
-            ->where('status', '!=', App\Models\Appointment::STATUS_CANCELADO)
+            ->where('status', '!=', Appointment::STATUS_CANCELADO)
             ->get();
 
         if ($appointments->isEmpty()) {
