@@ -10,6 +10,7 @@ beforeEach(function () {
     Role::firstOrCreate(['name' => 'Administrador']);
     Role::firstOrCreate(['name' => 'Paciente']);
     Role::firstOrCreate(['name' => 'Doctor']); // Si existe
+    Role::firstOrCreate(['name' => 'Secretaria']); // Para llegar al id 4
 });
 
 test('Cannot delete role assigned to users', function () {

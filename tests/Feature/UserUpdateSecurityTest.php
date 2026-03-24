@@ -32,7 +32,7 @@ test('User must provide current password when changing email', function () {
         'id_number' => 'ABC123456',
         'phone' => '1234567890',
         'address' => 'Dirección original',
-        'role_id' => $userRole->id,
+        'role' => $userRole->id,
         // SIN current_password - debería fallar
     ]);
 
@@ -63,7 +63,7 @@ test('User can change email with correct current password', function () {
         'id_number' => 'XYZ789012',
         'phone' => '1234567890',
         'address' => 'Nueva Dirección',
-        'role_id' => $userRole->id,
+        'role' => $userRole->id,
         'current_password' => 'MyCurrentPass123'
     ]);
 
@@ -92,7 +92,7 @@ test('User cannot change email with incorrect current password', function () {
         'id_number' => 'ID123456',
         'phone' => '1234567890',
         'address' => 'Test Address',
-        'role_id' => $userRole->id,
+        'role' => $userRole->id,
         'current_password' => 'WrongPassword123'
     ]);
 
@@ -121,7 +121,7 @@ test('User can update other fields without current password if email stays same'
         'id_number' => 'TEST12345',
         'phone' => '0987654321',
         'address' => 'Nueva Dirección',
-        'role_id' => $userRole->id,
+        'role' => $userRole->id,
         // No current_password needed
     ]);
 
@@ -156,7 +156,7 @@ test('Current password validation when changing password field', function () {
         'id_number' => 'PASS12345',
         'phone' => '1234567890',
         'address' => 'Address',
-        'role_id' => $userRole->id,
+        'role' => $userRole->id,
         'password' => 'NewPassword123',
         'password_confirmation' => 'NewPassword123',
         // SIN current_password - ¿debería fallar?
